@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+            transition: transform 0.3s ease-in-out;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        label {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        input[type="number"], select {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f3f3f3;
+            text-align: left;
+        }
+        .prediction-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease-out;
+        }
+        .prediction-card p {
+            margin: 5px 0;
+            color: #333;
+        }
+        .prediction-card h3 {
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+    </style>
+    <script>
+        async function submitForm(event) {
+            event.preventDefault();
+            const periods = document.getElementById('periods').value;
+            const interval = document.getElementById('interval').value;
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ 'periods': periods, 'interval': interval })
+            });
+            const result = await response.json();
+            displayResult(result);
+        }
+
+        function displayResult(result) {
+            const resultDiv = document.getElementById('result');
+            if (result.error) {
+                resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
+            } else {
+                resultDiv.innerHTML = `<h2>Predictions:</h2>`;
+                result.forEach(prediction => {
+                    const predictionColor = getColor(prediction.yhat);
+                    const lowerColor = getColor(prediction.yhat_lower);
+                    const upperColor = getColor(prediction.yhat_upper);
+                    resultDiv.innerHTML += `
+                        <div class="prediction-card">
+                            <h3>Date: ${prediction.ds}</h3>
+                            <p>Prediction: <span style="color: ${predictionColor}">${prediction.yhat.toFixed(2)}</span></p>
+                            <p>Lower: <span style="color: ${lowerColor}">${prediction.yhat_lower.toFixed(2)}</span></p>
+                            <p>Upper: <span style="color: ${upperColor}">${prediction.yhat_upper.toFixed(2)}</span></p>
+                        </div>`;
+                });
+            }
+        }
+
+        function getColor(value) {
+            if (value < 50) {
+                return 'red';
+            } else if (value >= 50 && value < 100) {
+                return 'orange';
+            } else {
+                return 'green';
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Sales Prediction</h1>
+        <form onsubmit="submitForm(event)">
+            <label for="periods">Enter number of future periods to predict:</label>
+            <input type="number" id="periods" name="periods" required>
+            <label for="interval">Select prediction interval:</label>
+            <select id="interval" name="interval">
+                <option value="D">Daily</option>
+                <option value="W">Weekly</option>
+                <option value="M">Monthly</option>
+                <option value="Q">Quarterly</option>
+                <option value="Y">Yearly</option>
+            </select>
+            <button type="submit">Predict</button>
+        </form>
+        <div id="result"></div>
+    </div>
+</body>
+</html>
